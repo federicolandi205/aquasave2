@@ -1,114 +1,181 @@
-/*
- * AQUASAVE - NodeMCU ESP8266
- * Mide con HC-SR04, indica el estado con LEDs/buzzer y publica JSON por HTTP.
- * Instale la librería NewPing desde el Library Manager de Arduino IDE.
- */
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
-#include <WiFiClient.h>
-#include <NewPing.h>
+#include <ArduinoJson.h>
 
-// --- Personalice estas cuatro constantes para cada prototipo ---
-const char* WIFI_SSID = "TU_RED_WIFI";
-const char* WIFI_PASSWORD = "TU_CLAVE_WIFI";
-const char* SERVER_URL = "http://192.168.1.50:8000/api/mediciones"; // IP LAN, nunca localhost
-const char* DEVICE_ID = "AQ-001"; // Debe existir previamente en la API
+// ---------------- WIFI ----------------
+const char* ssid = "TU_WIFI";
+const char* password = "CONTRASEÑA";
 
-// Pines NodeMCU (los nombres D corresponden a las etiquetas de la placa).
-const byte TRIGGER_PIN = D1;
-const byte ECHO_PIN = D2; // El ECHO del HC-SR04 necesita divisor 5V a 3.3V.
-const byte LED_VERDE = D5;
-const byte LED_AMARILLO = D6;
-const byte LED_ROJO = D7;
-const byte BUZZER = D8;
-const unsigned int MAX_DISTANCIA_CM = 400;
-const unsigned long INTERVALO_MS = 30000;
+// IP del servidor Python
+const char* servidor = " http://192.168.0.100:8000/api/mediciones ";
 
-// Una distancia menor indica más agua: adapte los umbrales a la altura del tanque.
-const float DISTANCIA_ALTO_CM = 15.0;
-const float DISTANCIA_MEDIO_CM = 45.0;
-NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCIA_CM);
-unsigned long ultimaMedicion = 0;
+// Identificador único del prototipo
+const char* PROTOTIPO = "AQ-001";
 
-enum Nivel { BAJO, MEDIO, ALTO };
+// ------------ Pines ---------------
+#define TRIG D5
+#define ECHO D6
 
-void conectarWifi() {
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("Conectando WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print('.');
-  }
-  Serial.println(" conectado: " + WiFi.localIP().toString());
-}
+#definir LED_VERDE D1
+#definir LED_AMARILLO D2
+#definir LED_ROJO D7
 
-Nivel calcularNivel(float distancia) {
-  if (distancia <= DISTANCIA_ALTO_CM) return ALTO;
-  if (distancia <= DISTANCIA_MEDIO_CM) return MEDIO;
-  return BAJO;
-}
+#definir ZUMBADOR D8
 
-const char* textoNivel(Nivel nivel) {
-  if (nivel == ALTO) return "ALTO";
-  if (nivel == MEDIO) return "MEDIO";
-  return "BAJO";
-}
+// Altura del sensor respecto al agua (cm)
+const float ALTURA_ARROYO = 100.0;
 
-void apagarLeds() {
-  digitalWrite(LED_VERDE, LOW);
-  digitalWrite(LED_AMARILLO, LOW);
-  digitalWrite(LED_ROJO, LOW);
-}
+// Umbrales
+const float NORMAL = 30;
+const float ALERTA = 60;
+const float PELIGRO = 85;
 
-void indicarNivel(Nivel nivel) {
-  apagarLeds();
-  // Patrones audibles: bajo=1 beep, medio=2, alto=3 beeps rápidos.
-  byte cantidad = nivel == BAJO ? 1 : (nivel == MEDIO ? 2 : 3);
-  byte led = nivel == BAJO ? LED_VERDE : (nivel == MEDIO ? LED_AMARILLO : LED_ROJO);
-  digitalWrite(led, HIGH);
-  for (byte i = 0; i < cantidad; i++) {
-    tone(BUZZER, nivel == ALTO ? 1400 : 900, 120);
-    delay(200);
-  }
-  noTone(BUZZER);
-}
-
-void enviarMedicion(float distancia, Nivel nivel) {
-  if (WiFi.status() != WL_CONNECTED) conectarWifi();
-  WiFiClient cliente;
-  HTTPClient http;
-  if (!http.begin(cliente, SERVER_URL)) {
-    Serial.println("URL de servidor inválida");
-    return;
-  }
-  http.addHeader("Content-Type", "application/json");
-  String json = "{\"dispositivo_id\":\"" + String(DEVICE_ID) +
-                "\",\"nivel\":\"" + textoNivel(nivel) +
-                "\",\"distancia\":" + String(distancia, 1) + "}";
-  int codigo = http.POST(json);
-  Serial.printf("POST %d: %s\n", codigo, json.c_str());
-  http.end();
-}
+unsigned long ultimoEnvio = 0;
 
 void setup() {
-  Serial.begin(115200);
-  pinMode(LED_VERDE, OUTPUT); pinMode(LED_AMARILLO, OUTPUT);
-  pinMode(LED_ROJO, OUTPUT); pinMode(BUZZER, OUTPUT);
-  apagarLeds();
-  conectarWifi();
+
+Serial.begin(115200);
+
+pinMode(TRIG, SALIDA);
+pinMode(ECHO, ENTRADA);
+
+pinMode(LED_VERDE, SALIDA);
+pinMode(LED_AMARILLO, SALIDA);
+pinMode(LED_ROJO, SALIDA);
+
+pinMode(ZUMBADOR, SALIDA);
+
+WiFi.begin(ssid, contraseña);
+
+while (WiFi.status() != WL_CONNECTED) {
+delay(500);
+Serial.print(".");
+}
+
+Serial.println("WiFi conectado");
+}
+
+flotar medirNivel() {
+
+digitalWrite(TRIG, LOW);
+delayMicroseconds(5);
+
+digitalWrite(TRIG, HIGH);
+delayMicroseconds(10);
+
+digitalWrite(TRIG, LOW);
+
+larga duracion = pulseIn(ECHO, ALTA);
+
+flotador distancia = duracion * 0.0343 / 2;
+
+float nivel = ALTURA_ARROYO - distancia;
+
+si (nivel < 0)
+nivel = 0;
+
+devolver nivel;
+}
+
+String obtenerEstado(float nivel) {
+
+si (nivel < NORMAL)
+devolver "NORMAL";
+
+if (nivel < ALERTA)
+retorna "SUBIENDO";
+
+devolver "PELIGRO";
+}
+
+void activarAlertas(float nivel) {
+
+digitalWrite(LED_VERDE, BAJO);
+digitalWrite(LED_AMARILLO, BAJO);
+digitalWrite(LED_ROJO, BAJO);
+noTone(ZUMBADOR);
+
+si (nivel < NORMAL) {
+
+digitalWrite(LED_VERDE, HIGH);
+}
+
+else if (nivel < ALERTA) {
+
+digitalWrite(LED_AMARILLO, HIGH);
+
+tone(BUZZER, 1200);
+delay(150);
+noTone(BUZZER);
+delay(150);
+}
+
+demás {
+
+digitalWrite(LED_ROJO, HIGH);
+
+tone(BUZZER, 2500);
+}
+}
+
+void enviarServidor(float nivel, String estado) {
+
+Si (WiFi.status() != WL_CONNECTED)
+regresar;
+
+Cliente WiFi; Cliente
+HTTP http;
+
+http.begin(cliente, servidor);
+
+http.addHeader("Content-Type", "application/json");
+
+Documento Json estático<256> doc;
+
+doc["prototipo"] = PROTOTIPO;
+doc["nivel_cm"] = nivel;
+doc["estado"] = estado;
+doc["bateria"] = 100;
+
+Cadena json;
+
+serializarJson(doc, json);
+
+int código = http.POST(json);
+
+Serial.println(código);
+
+http.end();
 }
 
 void loop() {
-  if (millis() - ultimaMedicion < INTERVALO_MS) return;
-  ultimaMedicion = millis();
-  delay(50); // Estabiliza la lectura ultrasónica.
-  unsigned int cm = sonar.ping_cm();
-  if (cm == 0) { // NewPing devuelve 0 si no hubo eco dentro del rango máximo.
-    Serial.println("Lectura HC-SR04 no disponible; no se envía dato.");
-    return;
-  }
-  Nivel nivel = calcularNivel((float)cm);
-  indicarNivel(nivel);
-  enviarMedicion((float)cm, nivel);
+
+float nivel = medirNivel();
+
+String estado obtener =Estado(nivel);
+
+activarAlertas(nivel);
+
+if (millis() - ultimoEnvio > 5000) {
+
+enviarServidor(nivel, estado);
+
+ultimoEnvio = millis();
 }
+
+Serial.print("Nivel: ");
+Serial.print(nivel);
+Serial.print(" cm Estado: ");
+Serial.println(estado);
+
+retraso(500);
+}
+
+Actividad
+Añade un comentario
+Nuevo comentario
+Entrada Markdown: modo de edición seleccionado.
+Escribir
+Avance
+Utiliza Markdown para dar formato a tu comentario.
+
