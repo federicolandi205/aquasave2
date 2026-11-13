@@ -1,0 +1,10 @@
+# No publicar credenciales ni archivos generados localmente.
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest-cache-files-*/
+coverage.data
+.coverage*
+htmlcov/

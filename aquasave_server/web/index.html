@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071d32"><title>AQUASAVE | Centro de monitoreo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="#inicio"><span class="brand-mark">◉</span><span>AQUA<span class="brand-light">SAVE</span><small>WATER INTELLIGENCE</small></span></a>
+    <div class="nav-caption">PLATAFORMA</div>
+    <nav aria-label="Navegación principal">
+      <a href="#inicio" class="nav-link active" data-page="inicio"><span>⌂</span>Resumen</a>
+      <a href="#monitoreo" class="nav-link" data-page="monitoreo"><span>◉</span>Monitoreo en vivo</a>
+      <a href="#mapa" class="nav-link" data-page="mapa"><span>⌖</span>Mapa de sensores</a>
+      <a href="#historial" class="nav-link" data-page="historial"><span>▤</span>Historial</a>
+      <a href="#analitica" class="nav-link" data-page="analitica"><span>▥</span>Analítica</a>
+      <a href="#dispositivos" class="nav-link" data-page="dispositivos"><span>⌁</span>Dispositivos</a>
+      <a href="#alertas" class="nav-link" data-page="alertas"><span>♧</span>Alertas <b class="nav-count" id="nav-alert-count">0</b></a>
+    </nav>
+    <div class="nav-caption api-caption">API Y DESARROLLO</div>
+    <nav aria-label="Documentación de la API">
+      <a href="/docs" class="nav-link api-link" target="_blank" rel="noopener"><span>⌘</span>Swagger UI <small>↗</small></a>
+      <a href="/redoc" class="nav-link api-link" target="_blank" rel="noopener"><span>▤</span>ReDoc <small>↗</small></a>
+      <a href="/openapi.json" class="nav-link api-link" target="_blank" rel="noopener"><span>{ }</span>OpenAPI JSON <small>↗</small></a>
+    </nav>
+    <div class="sidebar-bottom"><div class="side-status"><span class="pulse"></span><div><strong id="api-state">Conectando API</strong><small id="sync-time">Esperando sincronización</small></div></div><a href="#proyecto" class="nav-link" data-page="proyecto"><span>ⓘ</span>Sobre el proyecto</a><div class="side-foot">AQUASAVE · RED DE MONITOREO<br>BUENOS AIRES, ARGENTINA</div></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><button id="menu-toggle" class="icon-button menu-toggle" aria-label="Abrir menú">☰</button><div class="crumb">Sistema <span>/</span> <strong id="crumb-title">Resumen general</strong></div><div class="top-actions"><span class="live-label"><i></i> SISTEMA EN LÍNEA</span><button class="icon-button" id="refresh-btn" title="Actualizar ahora">↻</button><div class="avatar">AS</div></div></header>
+    <section class="page-content" id="page-content">
+      <section class="page-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span> CENTRO DE OPERACIONES <span class="eyebrow-line"></span> <span id="today-label"></span></div><h1>Visión general</h1><p>Monitoreo inteligente para cuidar cada recurso.</p></div><button class="button button-light" id="export-btn">↓ <span>Exportar datos</span></button></section>
+      <div id="error-banner" class="error-banner hidden"></div>
+      <section class="metric-grid" aria-label="Indicadores del sistema">
+        <article class="metric-card"><div class="metric-top"><span class="metric-icon blue">⌁</span><span class="metric-tag">REGISTRADOS</span></div><div class="metric-value" id="metric-total">—</div><div class="metric-label">Prototipos totales</div><div class="metric-foot"><span class="tiny-dot blue-dot"></span>Dispositivos en la red</div><span class="metric-water water-one"></span></article>
+        <article class="metric-card"><div class="metric-top"><span class="metric-icon green">⌁</span><span class="metric-tag">ACTUALIZADOS</span></div><div class="metric-value" id="metric-online">— <small>de —</small></div><div class="metric-label">Conectados ahora</div><div class="metric-foot"><span class="tiny-dot green-dot"></span>Lectura en los últimos 5 min</div></article>
+        <article class="metric-card"><div class="metric-top"><span class="metric-icon amber">⌁</span><span class="metric-tag">ÚLTIMO DATO</span></div><div class="metric-value metric-time" id="metric-latest">—</div><div class="metric-label">Última medición recibida</div><div class="metric-foot" id="latest-device">A la espera de datos</div></article>
+        <article class="metric-card alert-metric"><div class="metric-top"><span class="metric-icon red">!</span><span class="metric-tag">ATENCIÓN</span></div><div class="metric-value" id="metric-alerts">—</div><div class="metric-label">Alertas registradas</div><div class="metric-foot"><span class="tiny-dot red-dot"></span>En el período seleccionado</div></article>
+      </section>
+      <section class="content-grid">
+        <article class="panel chart-panel"><div class="panel-head"><div><div class="panel-kicker">TENDENCIA DEL CAUDAL</div><h2>Evolución del nivel de agua</h2><p class="panel-subtitle">Lecturas registradas en el período</p></div><select class="select-control" id="period-select" aria-label="Período"><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option></select></div><div class="chart-wrap"><canvas id="level-chart"></canvas><div class="empty-chart hidden" id="chart-empty">Todavía no hay mediciones en este período.</div></div><div class="chart-legend"><span><i class="legend-line"></i>Nivel del agua</span><span class="chart-source">FUENTE: SENSORES AQUASAVE</span></div></article>
+        <article class="panel risk-panel"><div class="panel-head"><div><div class="panel-kicker">ESTADO DE LA RED</div><h2>Distribución de riesgo</h2></div><span class="mini-info" title="Calculado sobre mediciones guardadas">i</span></div><div class="donut-wrap"><canvas id="risk-chart"></canvas><div class="donut-center"><strong id="risk-total">0</strong><small>LECTURAS</small></div></div><div class="risk-legend"><div><span class="risk-key low"></span><span>Normal <small>BAJO</small></span><strong id="risk-low">0</strong></div><div><span class="risk-key medium"></span><span>En observación <small>MEDIO</small></span><strong id="risk-medium">0</strong></div><div><span class="risk-key high"></span><span>Riesgo elevado <small>ALTO</small></span><strong id="risk-high">0</strong></div></div></article>
+      </section>
+      <section class="content-grid lower-grid">
+        <article class="panel devices-panel"><div class="panel-head"><div><div class="panel-kicker">SEGUIMIENTO EN TIEMPO REAL</div><h2>Prototipos monitoreados</h2></div><a class="text-link" href="#monitoreo">Ver todos <span>→</span></a></div><div class="table-scroll"><table><thead><tr><th>DISPOSITIVO</th><th>NIVEL DE AGUA</th><th>RIESGO</th><th>ÚLTIMA LECTURA</th><th>CONEXIÓN</th></tr></thead><tbody id="device-preview"></tbody></table><div class="table-empty" id="devices-empty">La red está lista. Al registrar un prototipo aparecerá aquí.</div></div></article>
+        <article class="panel map-preview"><div class="panel-head"><div><div class="panel-kicker">UBICACIÓN GEOGRÁFICA</div><h2>Mapa de la red</h2></div><a class="map-expand" href="#mapa" aria-label="Abrir mapa">↗</a></div><div class="mini-map" id="mini-map"></div><div class="map-foot"><span><i class="map-dot green-dot"></i>Normal</span><span><i class="map-dot amber-dot"></i>Precaución</span><span><i class="map-dot red-dot"></i>Crítico</span></div></article>
+      </section>
+      <footer class="footer"><span>© AQUASAVE 2026</span><span>TECNOLOGÍA PARA UN FUTURO MÁS SEGURO <b>·</b> MONITOREO CADA 15 SEG</span></footer>
+    </section>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="/assets/app.js"></script>
+</body></html>
