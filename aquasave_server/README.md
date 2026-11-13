@@ -236,6 +236,18 @@ La conexión utiliza los endpoints originales (`/prototypes`, `/measurements`, `
 
 ## Configuración y despliegue
 
+### Desplegar en Render con Blueprint
+
+El archivo `../render.yaml` configura un Web Service Python para esta carpeta y una base Render PostgreSQL. Para desplegarlo:
+
+1. Publica en GitHub el commit que contiene `render.yaml` y `aquasave_server/`.
+2. En Render, elige **New +** → **Blueprint**, conecta el repositorio `aquasave2` y selecciona la rama `main`.
+3. Revisa los recursos detectados y pulsa **Apply**. Render instalará `requirements.txt`, ejecutará `alembic upgrade head` y arrancará Uvicorn enlazado al puerto `$PORT`.
+4. Al terminar, abre la URL `onrender.com` del servicio. `/health` comprueba la conexión de la API con PostgreSQL; `/docs` abre Swagger.
+5. Si usarás Telegram, añade `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` en **Environment** del servicio. No pongas esos secretos en GitHub.
+
+El Blueprint genera automáticamente `ADMIN_API_KEY` y `AUTH_SECRET_KEY`; cópialos desde el panel de Render cuando debas usarlos. La base gratuita de Render vence a los 30 días; antes de esa fecha, actualízala a un plan persistente o exporta y migra los datos. Los servicios web gratuitos se suspenden tras 15 minutos sin tráfico y tardan en reactivarse cuando reciben una nueva petición. Esta configuración gratuita sirve para probar y presentar el proyecto; para conservar el historial de forma continua, usa una base con persistencia. Revisa los límites y el costo actual antes de elegir un plan.
+
 - Mantén `DATABASE_URL` y las credenciales fuera del frontend. `.env` es local y está ignorado por Git. Configura `ADMIN_API_KEY` con una clave secreta larga; el alta, edición y baja de prototipos requieren `X-Admin-Key`. La interfaz solicita la clave al guardar y la conserva solo en la sesión del navegador.
 - Para activar notificaciones configura `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` como variables de entorno del servidor. Si no están definidas, las lecturas siguen guardándose y la web muestra alertas derivadas; el token nunca se envía al navegador. Los fallos de Telegram se registran en el log del backend y no descartan la medición.
 - El proyecto actual usa PostgreSQL, no SQLite. Es una base relacional existente; no se crea una segunda base. En un proveedor cloud configura `DATABASE_URL` como variable secreta y usa PostgreSQL gestionado con persistencia y respaldos. El filesystem efímero de algunos planes gratuitos no es adecuado para guardar una SQLite de producción.

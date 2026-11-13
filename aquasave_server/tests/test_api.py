@@ -1,5 +1,9 @@
 """Pruebas de contratos y operaciones principales de la API."""
 
+from sqlalchemy import create_engine
+
+import app.main as main_module
+
 
 def create_prototype(client, payload, headers):
     response = client.post("/prototypes", json=payload, headers=headers)
@@ -11,6 +15,15 @@ def test_static_dashboard_is_served(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "AQUASAVE" in response.text
+
+
+def test_health_check_uses_configured_database(client, monkeypatch):
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    monkeypatch.setattr(main_module, "engine", engine)
+    response = client.get("/health")
+    engine.dispose()
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "database": "ok"}
 
 
 def test_admin_key_required_for_prototype_changes(client, prototype_payload):

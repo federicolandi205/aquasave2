@@ -1,23 +1,18 @@
 """Conecta Alembic con los modelos y la URL configurada en .env."""
 
 from logging.config import fileConfig
-import os
 
 from alembic import context
-from dotenv import load_dotenv
 from sqlalchemy import create_engine, pool
 
 from app import models  # noqa: F401: importa modelos para registrarlos en Base.metadata.
-from app.database import Base
+from app.database import Base, DATABASE_URL
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-load_dotenv()
-database_url = os.getenv("DATABASE_URL")
-if not database_url:
-    raise RuntimeError("Falta DATABASE_URL en el archivo .env")
+database_url = DATABASE_URL
 
 target_metadata = Base.metadata
 

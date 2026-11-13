@@ -12,7 +12,14 @@ load_dotenv()
 # La URL completa se mantiene fuera del código para poder cambiar credenciales.
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
-    raise RuntimeError("Falta DATABASE_URL. Revisá el archivo .env.")
+    raise RuntimeError("Falta configurar la variable DATABASE_URL.")
+
+# Render Postgres entrega postgresql://; usamos el driver psycopg 3 que ya
+# forma parte de requirements.txt (sin exigir psycopg2).
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql+psycopg://" + DATABASE_URL.removeprefix("postgres://")
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = "postgresql+psycopg://" + DATABASE_URL.removeprefix("postgresql://")
 
 # El motor administra las conexiones entre la aplicación y PostgreSQL.
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
